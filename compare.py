@@ -89,12 +89,7 @@ def send(url, model, messages, max_tokens):
         "temperature": SAMPLING_TEMP,
         "top_p": SAMPLING_TOP_P,
         "top_k": SAMPLING_TOP_K,
-        # Belt-and-suspenders stop string. Some GGUFs (notably Gemma 4 from
-        # Unsloth) don't expose the turn-end token id correctly in their EOG
-        # metadata, so llama.cpp doesn't stop on it natively. Matching on
-        # the decoded text catches it. No-op for models that don't emit
-        # this literal string (e.g. Qwen).
-        #"stop": ["<end_of_turn>"],
+        "chat_template_kwargs": {"enable_thinking": False},
     }
     r = requests.post(
         url.rstrip("/") + "/v1/chat/completions",
