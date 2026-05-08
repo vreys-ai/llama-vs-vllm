@@ -1,0 +1,5 @@
+codecarbon
+requests
+pillow
+datasets
+nvidia-ml-py
