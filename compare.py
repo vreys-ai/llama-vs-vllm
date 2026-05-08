@@ -14,9 +14,9 @@ and uses codecarbon to measure energy consumption and CO2 emissions.
 Usage:
     python compare.py \\
         --vllm-url http://localhost:8000 \\
-        --vllm-model Qwen/Qwen2-VL-2B-Instruct \\
+        --vllm-model google/gemma-4-E4B-it \\
         --llamacpp-url http://localhost:9090 \\
-        --llamacpp-model qwen2-vl
+        --llamacpp-model gemma4-e4b
 
 Caveats:
     * codecarbon measures whole-machine power, not just the server process.
@@ -40,6 +40,11 @@ from datasets import load_dataset
 POPE_DATASET = "lmms-lab/POPE"
 POPE_CONFIG = "Full"
 POPE_SPLIT = "random"
+
+
+SAMPLING_TEMP = 1.0
+SAMPLING_TOP_P = 0.95
+SAMPLING_TOP_K = 64
 
 
 def load_pope_samples(n):
@@ -81,13 +86,15 @@ def send(url, model, messages, max_tokens):
         "model": model,
         "messages": messages,
         "max_tokens": max_tokens,
-        "temperature": 0.0,
+        "temperature": SAMPLING_TEMP,
+        "top_p": SAMPLING_TOP_P,
+        "top_k": SAMPLING_TOP_K,
         # Belt-and-suspenders stop string. Some GGUFs (notably Gemma 4 from
         # Unsloth) don't expose the turn-end token id correctly in their EOG
         # metadata, so llama.cpp doesn't stop on it natively. Matching on
         # the decoded text catches it. No-op for models that don't emit
         # this literal string (e.g. Qwen).
-        "stop": ["<end_of_turn>"],
+        #"stop": ["<end_of_turn>"],
     }
     r = requests.post(
         url.rstrip("/") + "/v1/chat/completions",
