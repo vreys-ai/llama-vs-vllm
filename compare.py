@@ -15,7 +15,7 @@ Usage:
     python compare.py \\
         --vllm-url http://localhost:8000 \\
         --vllm-model Qwen/Qwen2-VL-2B-Instruct \\
-        --llamacpp-url http://localhost:8080 \\
+        --llamacpp-url http://localhost:9090 \\
         --llamacpp-model qwen2-vl
 
 Caveats:
@@ -82,6 +82,12 @@ def send(url, model, messages, max_tokens):
         "messages": messages,
         "max_tokens": max_tokens,
         "temperature": 0.0,
+        # Belt-and-suspenders stop string. Some GGUFs (notably Gemma 4 from
+        # Unsloth) don't expose the turn-end token id correctly in their EOG
+        # metadata, so llama.cpp doesn't stop on it natively. Matching on
+        # the decoded text catches it. No-op for models that don't emit
+        # this literal string (e.g. Qwen).
+        "stop": ["<end_of_turn>"],
     }
     r = requests.post(
         url.rstrip("/") + "/v1/chat/completions",
@@ -142,13 +148,20 @@ def main():
     ap.add_argument("--vllm-model")
     ap.add_argument("--llamacpp-url", default="http://localhost:9090")
     ap.add_argument("--llamacpp-model")
-    ap.add_argument("--max-tokens", type=int, default=32,
-                    help="Cap on output tokens. POPE answers are yes/no so "
-                         "32 is plenty; the model usually stops well before.")
+    ap.add_argument("--max-tokens", type=int, default=192,
+                    help="Cap on output tokens. 192 leaves headroom for stacks "
+                         "where the model emits a long tail of non-rendered "
+                         "tokens between the visible answer and the actual "
+                         "end-of-turn marker (observed: Gemma 4 multimodal on "
+                         "llama.cpp emits ~120 such tokens). Models/stacks "
+                         "that stop cleanly will finish well before the cap.")
     ap.add_argument("--rounds", type=int, default=1,
                     help="Repeat the prompt set N times for more stable totals.")
-    ap.add_argument("--n-samples", type=int, default=200,
-                    help="Number of POPE samples to stream (default 200).")
+    ap.add_argument("--n-samples", type=int, default=100,
+                    help="Number of POPE samples to stream (default 100). "
+                         "Lower than the original 200 to keep wall-clock under "
+                         "the 5-min/server budget when stacks emit long token "
+                         "tails (Gemma 4 + llama.cpp).")
     ap.add_argument("--only", choices=["vllm", "llamacpp", "both"], default="both",
                     help="Benchmark only one server. Recommended on a single GPU "
                          "where you can't keep both servers loaded at once.")
