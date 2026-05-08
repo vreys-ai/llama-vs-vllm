@@ -95,6 +95,7 @@ def send(url, model, messages, max_tokens):
         # the decoded text catches it. No-op for models that don't emit
         # this literal string (e.g. Qwen).
         #"stop": ["<end_of_turn>"],
+        "stop": ["<end_of_turn>", "<eos>", "<turn|>"],
     }
     r = requests.post(
         url.rstrip("/") + "/v1/chat/completions",
