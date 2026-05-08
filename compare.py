@@ -82,12 +82,6 @@ def send(url, model, messages, max_tokens):
         "messages": messages,
         "max_tokens": max_tokens,
         "temperature": 0.0,
-        # Belt-and-suspenders stop string. Some GGUFs (notably Gemma 4 from
-        # Unsloth) don't expose the turn-end token id correctly in their EOG
-        # metadata, so llama.cpp never natively stops and runs to max_tokens
-        # on every request. Matching on the decoded text is reliable. No-op
-        # for models that don't emit this literal string (e.g. Qwen).
-        "stop": ["<end_of_turn>"],
     }
     r = requests.post(
         url.rstrip("/") + "/v1/chat/completions",
